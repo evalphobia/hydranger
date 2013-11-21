@@ -1,0 +1,13 @@
+{
+  "key" : "xxxxyyyyzzzz",  
+  "list" : [
+    "location",
+    "tag"
+  ],
+  "header" : [
+    { "column" : "name"},
+    { "column" : "ipaddr"},
+    { "column" : "location"},
+    { "column" : "tag"}
+  ]
+}

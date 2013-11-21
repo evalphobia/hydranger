@@ -1,0 +1,4 @@
+assets/node_modules
+assets/compress
+assets/js
+public/vendor/*
