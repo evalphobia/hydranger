@@ -33,7 +33,13 @@ Hydranger.modules.indexeddb = (self) ->
         console.log "deleted"
       store = db.createObjectStore "items", { keyPath : "id"}
       store.createIndex "nameIndex", "name", { unique: false }
+      my.createIndexes(store)
       return
+    return
+
+  self.indexeddb.createIndexes = (store)->
+    for own key,value of self.conf.list
+      store.createIndex value, value, { unique: false }
     return
 
   self.indexeddb.insert = (data)->
@@ -61,11 +67,19 @@ Hydranger.modules.indexeddb = (self) ->
         return
       request.onsuccess = (e)->
         return
+    my.select()
     return
 
   self.indexeddb.select = ()->
     my = self.indexeddb
     common = my.config.common
     db = common.db
+    trans = db.transaction ["items"], "readwrite"
+    store = trans.objectStore "items"
+    index = store.index "tag"
+    index.getKey("").onsuccess = (e)->
+      return
+      # console.log e.target
+    return
 
   return

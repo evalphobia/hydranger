@@ -956,14 +956,18 @@ Hydranger.modules.view = function(self) {
   };
 };
 
+var __hasProp = {}.hasOwnProperty;
+
 Hydranger.modules.binding = function(self) {
   'use strict';
   self.binding = {};
   self.binding.config = {};
   self.binding.config.common = {
     sidebars: ko.observableArray([]),
+    listheaders: ko.observableArray([]),
     listrows: ko.observableArray([]),
-    listheaders: ko.observableArray([])
+    allitems: [],
+    filters: ko.observableArray([])
   };
   self.binding.init = function() {
     var my;
@@ -983,7 +987,74 @@ Hydranger.modules.binding = function(self) {
     s = this;
     s.sidebars = common.sidebars;
     s.listheaders = common.listheaders;
-    s.listrows = common.listrows;
+    s.listrows = ko.computed(function() {
+      var filters;
+      filters = common.filters;
+      if (!filters().length) {
+        return common.listrows();
+      }
+      return ko.utils.arrayFilter(common.listrows(), function(row) {
+        var filter, i, _ref;
+        _ref = filters();
+        for (i in _ref) {
+          if (!__hasProp.call(_ref, i)) continue;
+          filter = _ref[i];
+          if (row[filter.key] !== filter.value) {
+            return false;
+          }
+        }
+        return true;
+      });
+    });
+    s.filterRows = my.filterRows;
+  };
+  self.binding.updateArray = function(koArray, items) {
+    koArray.removeAll();
+    ko.utils.arrayPushAll(koArray(), items);
+  };
+  self.binding.updateRows = function(items) {
+    var common, my;
+    my = self.binding;
+    common = my.config.common;
+    common.allitems = items;
+    my.updateArray(common.listrows, items);
+    common.listrows.valueHasMutated();
+  };
+  self.binding.updateSidebars = function(items) {
+    var common, my;
+    my = self.binding;
+    common = my.config.common;
+    my.updateArray(common.sidebars, items);
+    common.sidebars.valueHasMutated();
+  };
+  self.binding.filterRows = function(type, item, isMulti) {
+    var common, filters, my, newFilters, newItem, _ref;
+    my = self.binding;
+    common = my.config.common;
+    filters = common.filters;
+    isMulti = (_ref = typeof isMulti === "undefined") != null ? _ref : {
+      "false": isMulti
+    };
+    newItem = {
+      key: type,
+      value: item,
+      multiple: isMulti
+    };
+    newFilters = ko.utils.arrayFilter(filters(), function(filter) {
+      if (isMulti) {
+        if (filter === newItem) {
+          return false;
+        }
+      } else {
+        if (filter.key = newItem.key) {
+          return false;
+        }
+      }
+      return true;
+    });
+    newFilters.push(newItem);
+    my.updateArray(filters, newFilters);
+    return filters.valueHasMutated();
   };
 };
 
@@ -1080,17 +1151,22 @@ Hydranger.modules.gss = function(self) {
     });
   };
   self.gss.updateRows = function(list) {
-    var bind, bindrows, headers, i, j, key, row, rows, title, value, values, _ref;
-    bind = self.binding.config.common;
-    bindrows = bind.listrows;
-    rows = [];
+    var column, headers, i, item, items, j, k, row, rows, side, sidebar_columns, sidebar_items, sidebars, title, value, values, _ref;
+    sidebar_items = {};
+    sidebar_columns = self.conf.list;
+    for (j in sidebar_columns) {
+      if (!__hasProp.call(sidebar_columns, j)) continue;
+      column = sidebar_columns[j];
+      sidebar_items[column] = {};
+    }
     headers = [];
     _ref = self.conf.header;
-    for (key in _ref) {
-      if (!__hasProp.call(_ref, key)) continue;
-      value = _ref[key];
+    for (j in _ref) {
+      if (!__hasProp.call(_ref, j)) continue;
+      value = _ref[j];
       headers.push(value.column);
     }
+    rows = [];
     for (i in list) {
       if (!__hasProp.call(list, i)) continue;
       values = list[i];
@@ -1102,9 +1178,32 @@ Hydranger.modules.gss = function(self) {
         title = headers[j];
         row[title] = values[j];
       }
+      for (j in sidebar_columns) {
+        if (!__hasProp.call(sidebar_columns, j)) continue;
+        side = sidebar_columns[j];
+        item = row[side];
+        sidebar_items[side][item] = 1;
+      }
       rows.push(row);
-      bindrows.push(row);
     }
+    sidebars = [];
+    for (column in sidebar_items) {
+      if (!__hasProp.call(sidebar_items, column)) continue;
+      j = sidebar_items[column];
+      items = [];
+      for (item in j) {
+        if (!__hasProp.call(j, item)) continue;
+        k = j[item];
+        items.push(item);
+      }
+      sidebars.push({
+        "name": column,
+        "items": items
+      });
+    }
+    console.log(sidebars);
+    self.binding.updateRows(rows);
+    self.binding.updateSidebars(sidebars);
     self.indexeddb.insert(rows);
   };
 };
@@ -1153,7 +1252,19 @@ Hydranger.modules.indexeddb = function(self) {
       store.createIndex("nameIndex", "name", {
         unique: false
       });
+      my.createIndexes(store);
     };
+  };
+  self.indexeddb.createIndexes = function(store) {
+    var key, value, _ref;
+    _ref = self.conf.list;
+    for (key in _ref) {
+      if (!__hasProp.call(_ref, key)) continue;
+      value = _ref[key];
+      store.createIndex(value, value, {
+        unique: false
+      });
+    }
   };
   self.indexeddb.insert = function(data) {
     var common, db, key, my, request, store, trans, value;
@@ -1184,12 +1295,17 @@ Hydranger.modules.indexeddb = function(self) {
       };
       request.onsuccess = function(e) {};
     }
+    my.select();
   };
   self.indexeddb.select = function() {
-    var common, db, my;
+    var common, db, index, my, store, trans;
     my = self.indexeddb;
     common = my.config.common;
-    return db = common.db;
+    db = common.db;
+    trans = db.transaction(["items"], "readwrite");
+    store = trans.objectStore("items");
+    index = store.index("tag");
+    index.getKey("").onsuccess = function(e) {};
   };
 };
 

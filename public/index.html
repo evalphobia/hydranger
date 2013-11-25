@@ -47,7 +47,10 @@
     <div class="col-md-2 text-left">
       <div id="hr-navbar" class="well sidebar-nav">
         <ul class="nav nav-list" data-bind="foreach: sidebars, visible:sidebars().length>0">
-          <li class="nav-header"><span data-bind="text: $data">todo</span></li>
+          <li class="nav-header" data-bind="text: name "></li>
+          <!-- ko foreach: $data.items -->
+            <li><button data-bind="text: $data ,click: $root.filterRows.bind(null, $parent.name, $data)"></button></li>
+          <!-- /ko -->
         </ul>
       </div>
     </div>
@@ -67,7 +70,7 @@
 </div>
 
 <script type="text/javascript" src="/common/js/hydranger.js"></script>
-<div id="autoload" data-preload="indexeddb configManager binding" data-postload="view gss" data-config="/common/js/hydranger_conf.json"></div>
+<div id="autoload" data-preload="configManager binding" data-postload="view gss" data-config="/common/js/hydranger_conf.json"></div>
 
 </body>
 </html>
