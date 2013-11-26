@@ -1007,6 +1007,15 @@ Hydranger.modules.binding = function(self) {
       });
     });
     s.filterRows = my.filterRows;
+    s.toggleButton = function(type, item) {
+      var btnclass, isMulti, selected;
+      isMulti = typeof isMulti === "undefined" ? false : isMulti;
+      selected = ko.utils.arrayFirst(common.filters(), function(filter) {
+        return filter.key === type && filter.value === item;
+      });
+      btnclass = selected ? "btn-primary" : "btn-default";
+      return btnclass;
+    };
   };
   self.binding.updateArray = function(koArray, items) {
     koArray.removeAll();
@@ -1027,34 +1036,34 @@ Hydranger.modules.binding = function(self) {
     my.updateArray(common.sidebars, items);
     common.sidebars.valueHasMutated();
   };
-  self.binding.filterRows = function(type, item, isMulti) {
-    var common, filters, my, newFilters, newItem, _ref;
+  return self.binding.filterRows = function(type, item, isMulti) {
+    var common, filters, isSelected, my, newFilters, newItem;
     my = self.binding;
     common = my.config.common;
     filters = common.filters;
-    isMulti = (_ref = typeof isMulti === "undefined") != null ? _ref : {
-      "false": isMulti
-    };
+    isMulti = typeof isMulti === "undefined" ? false : false;
     newItem = {
       key: type,
       value: item,
       multiple: isMulti
     };
+    isSelected = false;
     newFilters = ko.utils.arrayFilter(filters(), function(filter) {
-      if (isMulti) {
-        if (filter === newItem) {
-          return false;
-        }
-      } else {
-        if (filter.key = newItem.key) {
-          return false;
-        }
+      if (filter.key === newItem.key && filter.value === newItem.value) {
+        isSelected = true;
+        return false;
       }
-      return true;
+      if (filter.key === newItem.key && !item.isMulti) {
+        return false;
+      } else {
+        return true;
+      }
     });
-    newFilters.push(newItem);
+    if (!isSelected) {
+      newFilters.push(newItem);
+    }
     my.updateArray(filters, newFilters);
-    return filters.valueHasMutated();
+    filters.valueHasMutated();
   };
 };
 

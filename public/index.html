@@ -49,7 +49,7 @@
         <ul class="nav nav-list" data-bind="foreach: sidebars, visible:sidebars().length>0">
           <li class="nav-header" data-bind="text: name "></li>
           <!-- ko foreach: $data.items -->
-            <li><button data-bind="text: $data ,click: $root.filterRows.bind(null, $parent.name, $data)"></button></li>
+            <li><button class="btn btn-xs btn-block" data-bind="text: $data , click:$root.filterRows.bind(null, $parent.name, $data), css: $root.toggleButton($parent.name, $data)"></button></li>
           <!-- /ko -->
         </ul>
       </div>
