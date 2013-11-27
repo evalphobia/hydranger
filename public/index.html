@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Hydranger - the list from GoogleSpreadSheet</title>
   <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="/common/css/main.css" rel="stylesheet" />
   <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
     <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
@@ -33,11 +34,17 @@
 
 <header class="jumbotron subhead">
   <div class="container">
-    <div class="pull-left">
     <h1>Hydranger</h1>
-    <p class="lead"><a id="hr-edit-button" class="btn btn-primary" href="#" target="_blank" disabled="disabled">リストを編集</a></p>
+    <div class="pull-left">
+      <p class="lead"><a id="hr-edit-button" class="btn btn-primary" href="#" target="_blank" disabled="disabled">Edit SpreadSheet</a></p>
     </div>
-    <div id='search' class="pull-right"></div>
+    <div class="pull-right">
+      <div class="grid-search">
+        <p>Search:</p>
+        <label class="sr-only" for="hr-search">search</label>
+        <input type="text" class="form-control" data-bind="value: keywords, valueUpdate:'afterkeydown'" placeholder="Input keywords...">
+      </div>
+    </div>
   </div>
 </header>
 
@@ -56,7 +63,7 @@
     </div>
 
     <div class="col-md-10" id="view2">
-      <table class="table table-striped table-hover">
+      <table class="table table-striped table-hover table-bordered">
         <thead>
           <tr data-bind="foreach: listheaders, visible:listheaders().length>0"><td data-bind="text: name"></td></tr>
         </thead>

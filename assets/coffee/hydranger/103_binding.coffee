@@ -10,6 +10,7 @@ Hydranger.modules.binding = (self) ->
     listrows : ko.observableArray([])
     allitems : []
     filters : ko.observableArray([])
+    keywords : ko.observable('')
 
   self.binding.init = ->
     console.log "init bind"
@@ -28,12 +29,26 @@ Hydranger.modules.binding = (self) ->
     s = this
     s.sidebars = common.sidebars
     s.listheaders = common.listheaders
+    s.keywords = common.keywords
     s.listrows = ko.computed ()-> 
-      # filtering conditions
       filters = common.filters
-      if !filters().length
+      keywords = common.keywords()
+      keywords = keywords.replace(/\s+/g, ' ').trim()
+      if !filters().length and keywords.length < 2
         return common.listrows()
+      # filtering rows
       return ko.utils.arrayFilter common.listrows(), (row)->
+        # filter by keywords
+        if keywords.length > 1
+          matcher = 0
+          allKeywords = keywords.split(" ")
+          for own i,keyword of allKeywords
+            for own j,value of row
+              unless (value.toLowerCase().indexOf keyword.toLowerCase()) < 0
+                matcher++
+                break
+          return false if matcher < allKeywords.length
+        # filter by sidebar-filter
         for own i,filter of filters()
           if filter.multiple
             return false if (row[filter.key].indexOf filter.value) < 0

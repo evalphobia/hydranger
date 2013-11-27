@@ -967,7 +967,8 @@ Hydranger.modules.binding = function(self) {
     listheaders: ko.observableArray([]),
     listrows: ko.observableArray([]),
     allitems: [],
-    filters: ko.observableArray([])
+    filters: ko.observableArray([]),
+    keywords: ko.observable('')
   };
   self.binding.init = function() {
     var my;
@@ -987,14 +988,36 @@ Hydranger.modules.binding = function(self) {
     s = this;
     s.sidebars = common.sidebars;
     s.listheaders = common.listheaders;
+    s.keywords = common.keywords;
     s.listrows = ko.computed(function() {
-      var filters;
+      var filters, keywords;
       filters = common.filters;
-      if (!filters().length) {
+      keywords = common.keywords();
+      keywords = keywords.replace(/\s+/g, ' ').trim();
+      if (!filters().length && keywords.length < 2) {
         return common.listrows();
       }
       return ko.utils.arrayFilter(common.listrows(), function(row) {
-        var filter, i, _ref;
+        var allKeywords, filter, i, j, keyword, matcher, value, _ref;
+        if (keywords.length > 1) {
+          matcher = 0;
+          allKeywords = keywords.split(" ");
+          for (i in allKeywords) {
+            if (!__hasProp.call(allKeywords, i)) continue;
+            keyword = allKeywords[i];
+            for (j in row) {
+              if (!__hasProp.call(row, j)) continue;
+              value = row[j];
+              if (!((value.toLowerCase().indexOf(keyword.toLowerCase())) < 0)) {
+                matcher++;
+                break;
+              }
+            }
+          }
+          if (matcher < allKeywords.length) {
+            return false;
+          }
+        }
         _ref = filters();
         for (i in _ref) {
           if (!__hasProp.call(_ref, i)) continue;
