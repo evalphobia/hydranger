@@ -18,7 +18,7 @@ Hydranger.modules.gss = (self) ->
     common = my.config.common
     sheetkey = common.key()
     columns = []
-    for own key,value of self.conf.header
+    for own key,value of self.conf.columns
       columns.push "%"+value.column+"%"
     sheet = new SpreadsheetRenderer
       'key' : sheetkey,
@@ -31,36 +31,38 @@ Hydranger.modules.gss = (self) ->
     return
 
   self.gss.updateRows = (list) ->
-    # initialize sidebar for selection
-    sidebar_items = {}
-    sidebar_columns = self.conf.list
-    for own j,column of sidebar_columns
-      sidebar_items[column] = {}
-    # initialize headers to create ordered row 
-    headers = []
-    for own j,value of self.conf.header
-      headers.push value.column
+    # initialize filters from json data
+    columns = self.conf.columns
+    filtering_items = {}
+    for own j,column of columns
+      filtering_items[column.column] = {} if column.filtering
     # create each row
     rows = []
     for own i,values of list
       row = {}
       row.id = i
       values = values.split "\t"
-      for own j,title of headers  # create ordered row 
-        row[title] = values[j]
-      for own j,side of sidebar_columns  # create sidebar items
-        item = row[side]
-        sidebar_items[side][item] = 1
+      for own j,column of columns  # create ordered row 
+        name = column.column
+        row[name] = values[j]
+        if column.filtering is true
+          item = row[name]
+          # create multiple items (e.g. tagging)
+          if column.multiple is true
+            for own k,v of item.split(",")
+              filtering_items[name][v] = true
+          # create single item
+          else
+            filtering_items[name][item] = false
       rows.push row
     # create sidebar including items
     sidebars = []
-    for own column,j of sidebar_items
+    for own column,j of filtering_items
       items = []
-      for own item,k of j
+      for own item,isMultiple of j
         items.push item
-      sidebars.push { "name" : column, "items" : items }
+      sidebars.push { "name" : column, "items" : items, "multiple" : isMultiple }
     # update data
-    console.log sidebars
     self.binding.updateRows rows
     self.binding.updateSidebars sidebars
     self.indexeddb.insert rows

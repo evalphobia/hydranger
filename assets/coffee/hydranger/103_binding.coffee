@@ -35,7 +35,10 @@ Hydranger.modules.binding = (self) ->
         return common.listrows()
       return ko.utils.arrayFilter common.listrows(), (row)->
         for own i,filter of filters()
-          return false unless row[filter.key] is filter.value
+          if filter.multiple
+            return false if (row[filter.key].indexOf filter.value) < 0
+          else
+            return false unless row[filter.key] is filter.value
         return true
     s.filterRows = my.filterRows
     s.toggleButton = (type, item)->
@@ -70,14 +73,14 @@ Hydranger.modules.binding = (self) ->
     my = self.binding
     common = my.config.common
     filters = common.filters
-    isMulti = if typeof isMulti is "undefined" then false else false
-    newItem = {key : type, value: item, multiple:isMulti}
+    isMulti = if typeof isMulti is "undefined" then false else isMulti
+    newItem = { "key": type, "value": item, "multiple": isMulti }
     isSelected = false
     newFilters = ko.utils.arrayFilter filters(), (filter)->
       if filter.key is newItem.key and filter.value is newItem.value
         isSelected = true 
         return false
-      if filter.key is newItem.key and not item.isMulti 
+      if filter.key is newItem.key and not isMulti 
         return false
       else
         return true

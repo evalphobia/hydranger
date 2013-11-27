@@ -1,13 +1,9 @@
 {
-  "key" : "xxxxyyyyzzzz",  
-  "list" : [
-    "location",
-    "tag"
-  ],
-  "header" : [
+  "key" : "xxxxyyyyzzzz",
+  "columns" : [
+    { "column" : "ipaddr", "name" : "Private IP Address"},
     { "column" : "name"},
-    { "column" : "ipaddr"},
-    { "column" : "location"},
-    { "column" : "tag"}
+    { "column" : "location", "filtering" : true },
+    { "column" : "tag", "filtering" : true, "multiple" : true}
   ]
 }

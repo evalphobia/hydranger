@@ -261,7 +261,7 @@ Hydranger.modules.configManager = function(self) {
       value = _ref[key];
       bind.sidebars.push(value);
     }
-    _ref1 = data.header;
+    _ref1 = data.columns;
     for (key in _ref1) {
       if (!__hasProp.call(_ref1, key)) continue;
       value = _ref1[key];
@@ -999,8 +999,14 @@ Hydranger.modules.binding = function(self) {
         for (i in _ref) {
           if (!__hasProp.call(_ref, i)) continue;
           filter = _ref[i];
-          if (row[filter.key] !== filter.value) {
-            return false;
+          if (filter.multiple) {
+            if ((row[filter.key].indexOf(filter.value)) < 0) {
+              return false;
+            }
+          } else {
+            if (row[filter.key] !== filter.value) {
+              return false;
+            }
           }
         }
         return true;
@@ -1041,11 +1047,11 @@ Hydranger.modules.binding = function(self) {
     my = self.binding;
     common = my.config.common;
     filters = common.filters;
-    isMulti = typeof isMulti === "undefined" ? false : false;
+    isMulti = typeof isMulti === "undefined" ? false : isMulti;
     newItem = {
-      key: type,
-      value: item,
-      multiple: isMulti
+      "key": type,
+      "value": item,
+      "multiple": isMulti
     };
     isSelected = false;
     newFilters = ko.utils.arrayFilter(filters(), function(filter) {
@@ -1053,7 +1059,7 @@ Hydranger.modules.binding = function(self) {
         isSelected = true;
         return false;
       }
-      if (filter.key === newItem.key && !item.isMulti) {
+      if (filter.key === newItem.key && !isMulti) {
         return false;
       } else {
         return true;
@@ -1142,7 +1148,7 @@ Hydranger.modules.gss = function(self) {
     common = my.config.common;
     sheetkey = common.key();
     columns = [];
-    _ref = self.conf.header;
+    _ref = self.conf.columns;
     for (key in _ref) {
       if (!__hasProp.call(_ref, key)) continue;
       value = _ref[key];
@@ -1160,20 +1166,15 @@ Hydranger.modules.gss = function(self) {
     });
   };
   self.gss.updateRows = function(list) {
-    var column, headers, i, item, items, j, k, row, rows, side, sidebar_columns, sidebar_items, sidebars, title, value, values, _ref;
-    sidebar_items = {};
-    sidebar_columns = self.conf.list;
-    for (j in sidebar_columns) {
-      if (!__hasProp.call(sidebar_columns, j)) continue;
-      column = sidebar_columns[j];
-      sidebar_items[column] = {};
-    }
-    headers = [];
-    _ref = self.conf.header;
-    for (j in _ref) {
-      if (!__hasProp.call(_ref, j)) continue;
-      value = _ref[j];
-      headers.push(value.column);
+    var column, columns, filtering_items, i, isMultiple, item, items, j, k, name, row, rows, sidebars, v, values, _ref;
+    columns = self.conf.columns;
+    filtering_items = {};
+    for (j in columns) {
+      if (!__hasProp.call(columns, j)) continue;
+      column = columns[j];
+      if (column.filtering) {
+        filtering_items[column.column] = {};
+      }
     }
     rows = [];
     for (i in list) {
@@ -1182,35 +1183,43 @@ Hydranger.modules.gss = function(self) {
       row = {};
       row.id = i;
       values = values.split("\t");
-      for (j in headers) {
-        if (!__hasProp.call(headers, j)) continue;
-        title = headers[j];
-        row[title] = values[j];
-      }
-      for (j in sidebar_columns) {
-        if (!__hasProp.call(sidebar_columns, j)) continue;
-        side = sidebar_columns[j];
-        item = row[side];
-        sidebar_items[side][item] = 1;
+      for (j in columns) {
+        if (!__hasProp.call(columns, j)) continue;
+        column = columns[j];
+        name = column.column;
+        row[name] = values[j];
+        if (column.filtering === true) {
+          item = row[name];
+          if (column.multiple === true) {
+            _ref = item.split(",");
+            for (k in _ref) {
+              if (!__hasProp.call(_ref, k)) continue;
+              v = _ref[k];
+              filtering_items[name][v] = true;
+            }
+          } else {
+            filtering_items[name][item] = false;
+          }
+        }
       }
       rows.push(row);
     }
     sidebars = [];
-    for (column in sidebar_items) {
-      if (!__hasProp.call(sidebar_items, column)) continue;
-      j = sidebar_items[column];
+    for (column in filtering_items) {
+      if (!__hasProp.call(filtering_items, column)) continue;
+      j = filtering_items[column];
       items = [];
       for (item in j) {
         if (!__hasProp.call(j, item)) continue;
-        k = j[item];
+        isMultiple = j[item];
         items.push(item);
       }
       sidebars.push({
         "name": column,
-        "items": items
+        "items": items,
+        "multiple": isMultiple
       });
     }
-    console.log(sidebars);
     self.binding.updateRows(rows);
     self.binding.updateSidebars(sidebars);
     self.indexeddb.insert(rows);

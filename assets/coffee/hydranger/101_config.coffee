@@ -32,7 +32,7 @@ Hydranger.modules.configManager = (self) ->
     bind = self.binding.config.common
     for own key,value of data.list  # sidebar items
       bind.sidebars.push value
-    for own key,value of data.header # table header cells
+    for own key,value of data.columns # table header cells
       value.name = value.column if not value.name  
       bind.listheaders.push value
     return

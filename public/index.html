@@ -49,7 +49,7 @@
         <ul class="nav nav-list" data-bind="foreach: sidebars, visible:sidebars().length>0">
           <li class="nav-header" data-bind="text: name "></li>
           <!-- ko foreach: $data.items -->
-            <li><button class="btn btn-xs btn-block" data-bind="text: $data , click:$root.filterRows.bind(null, $parent.name, $data), css: $root.toggleButton($parent.name, $data)"></button></li>
+            <li><button class="btn btn-xs btn-block" data-bind="text: $data , click:$root.filterRows.bind(null, $parent.name, $data, $parent.multiple), css: $root.toggleButton($parent.name, $data)"></button></li>
           <!-- /ko -->
         </ul>
       </div>
@@ -58,10 +58,10 @@
     <div class="col-md-10" id="view2">
       <table class="table table-striped table-hover">
         <thead>
-          <tr data-bind="foreach: listheaders, visible:listheaders().length>0"><td data-bind="text: column"></td></tr>
+          <tr data-bind="foreach: listheaders, visible:listheaders().length>0"><td data-bind="text: name"></td></tr>
         </thead>
         <tbody id='hr-listrows' data-bind="foreach: {data : listrows, as : 'row'}, visible:listrows().length>0">
-          <tr data-bind="foreach: {data : $root.listheaders , as : 'name' }"><td data-bind="text: row[name]"></td></tr>
+          <tr data-bind="foreach: {data : $root.listheaders }"><td data-bind="text: row[column]"></td></tr>
         </tbody>
       </table>
     </div>
