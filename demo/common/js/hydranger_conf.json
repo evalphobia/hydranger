@@ -1,13 +1,9 @@
 {
-  "key" : "0ArSEtjp22YPedFJFeUtlN0V0RTltQXFuTGlJdnZqWEE",  
-  "list" : [
-    "location",
-    "tag"
-  ],
-  "header" : [
-    { "column" : "ipaddr"},
+  "key" : "0ArSEtjp22YPedFJFeUtlN0V0RTltQXFuTGlJdnZqWEE",
+  "columns" : [
+    { "column" : "ipaddr", "name" : "Private IP Address"},
     { "column" : "name"},
-    { "column" : "location"},
-    { "column" : "tag"}
+    { "column" : "location", "filtering" : true },
+    { "column" : "tag", "filtering" : true, "multiple" : true}
   ]
 }
