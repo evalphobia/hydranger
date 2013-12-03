@@ -1,9 +1,21 @@
 {
   "key" : "0ArSEtjp22YPedFJFeUtlN0V0RTltQXFuTGlJdnZqWEE",
+  "sheets" : [
+    "mainsheet",
+    "ip",
+    "dns"
+  ],
   "columns" : [
-    { "column" : "ipaddr", "name" : "Private IP Address"},
+    { "column" : "service", "name" : "ServiceName"},
     { "column" : "name"},
+    { "column" : "ipaddr", "name" : "Private IP Address"},
     { "column" : "location", "filtering" : true },
-    { "column" : "tag", "filtering" : true, "multiple" : true}
+    { "column" : "tag", "filtering" : true, "multiple" : true},
+    { "column" : "global"},
+    { "column" : "host", "name" : "Hostname"}
+  ],
+  "relations" : [
+    { "mainsheet" : "ipaddr", "ip" : "private" },
+    { "ip" : "global", "dns" : "ip" }
   ]
 }
