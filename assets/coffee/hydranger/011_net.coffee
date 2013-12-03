@@ -29,4 +29,12 @@ Hydranger.modules.net = (self) ->
         console.log(e)
     parsed = (new Function("return " + data))()
     return parsed
+
+  self.net.createQueryString = (params)->
+    q = []
+    for own key,value of params
+      q.push key+"="+value
+    q = encodeURI q.join("&")
+    return q
+
   return

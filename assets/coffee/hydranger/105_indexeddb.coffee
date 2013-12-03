@@ -31,7 +31,7 @@ Hydranger.modules.indexeddb = (self) ->
       if db.objectStoreNames.contains "items"
         db.deleteObjectStore "items"
         console.log "deleted"
-      store = db.createObjectStore "items", { keyPath : "id"}
+      store = db.createObjectStore "items", { keyPath : "_id"}
       store.createIndex "nameIndex", "name", { unique: false }
       my.createIndexes(store)
       return
@@ -67,7 +67,7 @@ Hydranger.modules.indexeddb = (self) ->
         return
       request.onsuccess = (e)->
         return
-    my.select()
+    #my.select()
     return
 
   self.indexeddb.select = ()->

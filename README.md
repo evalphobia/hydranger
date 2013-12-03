@@ -15,5 +15,4 @@ try below
 ## Dependencies
 Many thanks for these libraries
 
-* `spreadsheetrenderer.js` from [WebOS Goodies](http://webos-goodies.jp/archives/spreadsheetrenderer_js_an_easy_way_to_display_spreadsheet.html) 
 * `knockout.js` from [Knockout](knockoutjs.com)

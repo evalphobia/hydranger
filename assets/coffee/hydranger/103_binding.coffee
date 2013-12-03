@@ -44,6 +44,7 @@ Hydranger.modules.binding = (self) ->
           allKeywords = keywords.split(" ")
           for own i,keyword of allKeywords
             for own j,value of row
+              continue if j is "_id" 
               unless (value.toLowerCase().indexOf keyword.toLowerCase()) < 0
                 matcher++
                 break

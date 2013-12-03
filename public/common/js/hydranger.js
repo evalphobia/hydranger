@@ -52,6 +52,8 @@ Hydranger.modules.dom = function(self) {
   self.dom.getById = function() {};
 };
 
+var __hasProp = {}.hasOwnProperty;
+
 Hydranger.modules.net = function(self) {
   'use strict';
   self.net = {};
@@ -85,6 +87,17 @@ Hydranger.modules.net = function(self) {
     }
     parsed = (new Function("return " + data))();
     return parsed;
+  };
+  self.net.createQueryString = function(params) {
+    var key, q, value;
+    q = [];
+    for (key in params) {
+      if (!__hasProp.call(params, key)) continue;
+      value = params[key];
+      q.push(key + "=" + value);
+    }
+    q = encodeURI(q.join("&"));
+    return q;
   };
 };
 
@@ -129,6 +142,53 @@ Hydranger.modules.autoload = function(self) {
       }
       self[module_name].init();
     }
+  };
+};
+
+Hydranger.modules.gvizapi = function(self) {
+  'use strict';
+  self.gvizapi = {};
+  self.gvizapi.config = {
+    initialized: false,
+    url: 'https://docs.google.com/spreadsheet/ccc',
+    options: {
+      sendMethod: 'auto'
+    }
+  };
+  self.gvizapi.sheets = {};
+  self.gvizapi.init = function() {
+    var config, my;
+    my = self.gvizapi;
+    config = my.config;
+    if (!config.initialized) {
+      google.load("visualization", "1.0", {
+        'packages': ['table']
+      });
+      config.initialized = true;
+    }
+  };
+  return self.gvizapi.getSheetContents = function(params, callback) {
+    var config, my, qs, query, url;
+    my = self.gvizapi;
+    config = my.config;
+    if (typeof params.pub === 'undefined') {
+      params.pub = false;
+    }
+    qs = self.net.createQueryString(params);
+    url = config.url + '?' + qs;
+    query = new google.visualization.Query(url, config.options);
+    query.setQuery('select *');
+    query.send(function(response) {
+      var dt, jsondata;
+      if (response.isError()) {
+        console.log("google vizualization api Error:" + response.getDetailedMessage());
+        return;
+      }
+      dt = response.getDataTable();
+      my.sheets[params.sheet] = dt;
+      jsondata = JSON.parse(dt.toJSON());
+      callback(jsondata, my.sheets);
+    });
   };
 };
 
@@ -1008,6 +1068,9 @@ Hydranger.modules.binding = function(self) {
             for (j in row) {
               if (!__hasProp.call(row, j)) continue;
               value = row[j];
+              if (j === "_id") {
+                continue;
+              }
               if (!((value.toLowerCase().indexOf(keyword.toLowerCase())) < 0)) {
                 matcher++;
                 break;
@@ -1158,6 +1221,12 @@ Hydranger.modules.gss = function(self) {
   self.gss.config.common = {
     key: function() {
       return self.conf.key;
+    },
+    sheets: function() {
+      return self.conf.sheets;
+    },
+    relations: function() {
+      return self.conf.relations;
     }
   };
   self.gss.init = function() {
@@ -1166,58 +1235,128 @@ Hydranger.modules.gss = function(self) {
     my.getSheet();
   };
   self.gss.getSheet = function() {
-    var columns, common, key, my, sheet, sheetkey, value, _ref;
+    var columns, common, i, my, params, sheet, sheetkey, sheetlists;
     my = self.gss;
     common = my.config.common;
     sheetkey = common.key();
+    sheetlists = common.sheets();
     columns = [];
-    _ref = self.conf.columns;
-    for (key in _ref) {
-      if (!__hasProp.call(_ref, key)) continue;
-      value = _ref[key];
-      columns.push("%" + value.column + "%");
+    for (i in sheetlists) {
+      if (!__hasProp.call(sheetlists, i)) continue;
+      sheet = sheetlists[i];
+      params = {
+        'key': sheetkey,
+        'sheet': sheet,
+        'pub': false,
+        'headers': 1
+      };
+      self.gvizapi.getSheetContents(params, function(data, sheets) {
+        var jsondata;
+        if (sheetlists.length === Object.keys(sheets).length) {
+          sheet = my.joinSheets(sheets);
+          jsondata = my.getJSONData(sheet);
+          return my.updateRows(jsondata);
+        }
+      });
     }
-    sheet = new SpreadsheetRenderer({
-      'key': sheetkey,
-      'pub': false,
-      'gid': 0,
-      'headers': 1,
-      'template': columns.join("\t")
-    });
-    sheet.render('select * ', function(list) {
-      return my.updateRows(list);
-    });
   };
-  self.gss.updateRows = function(list) {
-    var column, columns, filtering_items, i, isMultiple, item, items, j, k, name, row, rows, sidebars, v, values, _ref;
+  self.gss.joinSheets = function(sheets) {
+    var col, column, columns, common, dt, i, id, j, joined_dt, jsondata, last_dt, my, relation, relations, sheet, sheetname, _ref;
+    my = self.gss;
+    common = my.config.common;
+    relations = common.relations();
+    for (i in relations) {
+      if (!__hasProp.call(relations, i)) continue;
+      relation = relations[i];
+      if (Object.keys(relation).length === !2) {
+        throw "Config Error: relations:: must have exact 2 keys";
+      }
+      dt = [];
+      for (sheetname in relation) {
+        if (!__hasProp.call(relation, sheetname)) continue;
+        column = relation[sheetname];
+        sheet = sheets[sheetname];
+        jsondata = my.getJSONData(sheet);
+        columns = [];
+        _ref = jsondata.cols;
+        for (j in _ref) {
+          if (!__hasProp.call(_ref, j)) continue;
+          col = _ref[j];
+          if (col.label === column) {
+            id = parseInt(j, 10);
+          } else {
+            columns.push(my.getColumnNumberById(col.id));
+          }
+        }
+        dt.push({
+          "sheet": sheets[sheetname],
+          "id": id,
+          "columns": columns,
+          "name": sheetname
+        });
+      }
+      joined_dt = google.visualization.data.join(dt[0].sheet, dt[1].sheet, 'left', [[dt[0].id, dt[1].id]], dt[0].columns, dt[1].columns);
+      sheets[dt[0].name] = joined_dt;
+      sheets[dt[1].name] = joined_dt;
+      last_dt = joined_dt;
+    }
+    return last_dt;
+  };
+  self.gss.getColumnNumberById = function(id) {
+    var char, index, initialCharCode, initialId, num, radix, _i, _len, _ref;
+    radix = 26;
+    initialId = 'A';
+    initialCharCode = initialId.charCodeAt(0);
+    id = id.toUpperCase();
+    num = 0;
+    _ref = id.split('');
+    for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+      char = _ref[index];
+      num = (radix * num) + (char.charCodeAt(index) - initialCharCode);
+    }
+    return num;
+  };
+  self.gss.updateRows = function(jsondata) {
+    var column, columns, filtering_items, i, isMultiple, item, items, j, k, label, name, row, rows, sidebars, v, values, _ref, _ref1, _ref2;
     columns = self.conf.columns;
     filtering_items = {};
-    for (j in columns) {
-      if (!__hasProp.call(columns, j)) continue;
-      column = columns[j];
+    for (i in columns) {
+      if (!__hasProp.call(columns, i)) continue;
+      column = columns[i];
       if (column.filtering) {
         filtering_items[column.column] = {};
       }
+      _ref = jsondata.cols;
+      for (j in _ref) {
+        if (!__hasProp.call(_ref, j)) continue;
+        label = _ref[j];
+        if (column.column === label.label) {
+          column.id = j;
+          break;
+        }
+      }
     }
     rows = [];
-    for (i in list) {
-      if (!__hasProp.call(list, i)) continue;
-      values = list[i];
+    _ref1 = jsondata.rows;
+    for (i in _ref1) {
+      if (!__hasProp.call(_ref1, i)) continue;
+      values = _ref1[i];
+      values = values.c;
       row = {};
-      row.id = i;
-      values = values.split("\t");
+      row._id = i;
       for (j in columns) {
         if (!__hasProp.call(columns, j)) continue;
         column = columns[j];
         name = column.column;
-        row[name] = values[j];
+        row[name] = values[column.id].v;
+        row[name] = row[name] === null ? "" : row[name];
         if (column.filtering === true) {
           item = row[name];
           if (column.multiple === true) {
-            _ref = item.split(",");
-            for (k in _ref) {
-              if (!__hasProp.call(_ref, k)) continue;
-              v = _ref[k];
+            _ref2 = item.split(",");
+            for (k in _ref2) {
+              if (!__hasProp.call(_ref2, k)) continue;
+              v = _ref2[k];
               filtering_items[name][v] = true;
             }
           } else {
@@ -1246,6 +1385,9 @@ Hydranger.modules.gss = function(self) {
     self.binding.updateRows(rows);
     self.binding.updateSidebars(sidebars);
     self.indexeddb.insert(rows);
+  };
+  self.gss.getJSONData = function(sheet) {
+    return JSON.parse(sheet.toJSON());
   };
 };
 
@@ -1288,7 +1430,7 @@ Hydranger.modules.indexeddb = function(self) {
         console.log("deleted");
       }
       store = db.createObjectStore("items", {
-        keyPath: "id"
+        keyPath: "_id"
       });
       store.createIndex("nameIndex", "name", {
         unique: false
@@ -1336,7 +1478,6 @@ Hydranger.modules.indexeddb = function(self) {
       };
       request.onsuccess = function(e) {};
     }
-    my.select();
   };
   self.indexeddb.select = function() {
     var common, db, index, my, store, trans;
